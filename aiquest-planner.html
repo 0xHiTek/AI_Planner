@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIQuest Planner - Master AI & Prompt Engineering</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React and ReactDOM via CDN -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel for JSX transformation -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* Custom animations */
+        @keyframes slideIn {
+            from { transform: translateX(-100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        .slide-in {
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        .skill-node {
+            transition: all 0.3s ease;
+        }
+        
+        .skill-node:hover {
+            transform: scale(1.1);
+        }
+        
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #1f2937;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #4b5563;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6b7280;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // AIQuest Planner - A productivity app for mastering AI and prompt engineering
+        
+        const { useState, useEffect, useRef } = React;
+
+        // Utility function to manage localStorage
+        const storage = {
+            get: (key, defaultValue = null) => {
+                try {
+                    const item = localStorage.getItem(key);
+                    return item ? JSON.parse(item) : defaultValue;
+                } catch (error) {
+                    console.error('Error reading from localStorage:', error);
+                    return defaultValue;
+                }
+            },
+            set: (key, value) => {
+                try {
+                    localStorage.setItem(key, JSON.stringify(value));
+                } catch (error) {
+                    console.error('Error writing to localStorage:', error);
+                }
+            }
+        };
+
+        // Pre-defined AI learning task suggestions
+        const AI_TASK_SUGGESTIONS = [
+            "Write 3 prompts for a chatbot",
+            "Read one section of an AI textbook",
+            "Code a simple neural network",
+            "Practice 5 different prompt patterns",
+            "Watch an AI/ML tutorial video",
+            "Experiment with temperature settings in prompts",
+            "Create a prompt template for a specific use case",
+            "Analyze 3 successful prompts from the community",
+            "Build a simple classification model",
+            "Study transformer architecture basics",
+            "Write documentation for your AI project",
+            "Test edge cases for your prompts"
+        ];
+
+        // Simulated AI response generator
+        const generateAIResponse = (prompt) => {
+            const responses = {
+                keywords: {
+                    'explain': "I'll break this down for you step by step...",
+                    'code': "Here's a code example that demonstrates the concept...",
+                    'help': "I'd be happy to help you with that...",
+                    'what': "Let me explain what this means...",
+                    'how': "Here's how you can approach this...",
+                    'why': "The reason for this is...",
+                    'create': "I'll help you create that...",
+                    'generate': "Here's what I've generated for you...",
+                    'summarize': "Here's a concise summary...",
+                    'list': "Here are the key points..."
+                },
+                fallback: "Based on your prompt, here's a simulated response. In a real implementation, this would connect to an AI model. Your prompt shows good structure and clarity!"
+            };
+
+            const lowerPrompt = prompt.toLowerCase();
+            for (const [keyword, response] of Object.entries(responses.keywords)) {
+                if (lowerPrompt.includes(keyword)) {
+                    return response + "\n\nThis is a simulated response. Your prompt contains the keyword '" + keyword + "' which is great for clarity!";
+                }
+            }
+
+            return responses.fallback;
+        };
+
+        // Prompt quality analyzer
+        const analyzePrompt = (prompt) => {
+            const wordCount = prompt.split(/\s+/).filter(word => word.length > 0).length;
+            const hasContext = prompt.length > 50;
+            const hasSpecificity = /specific|exactly|precise|detailed/.test(prompt.toLowerCase());
+            const hasClearIntent = /please|could you|can you|help|explain|create|generate/.test(prompt.toLowerCase());
+            
+            let score = 0;
+            let feedback = [];
+
+            if (wordCount >= 10) {
+                score += 25;
+                feedback.push("Good length");
+            } else {
+                feedback.push("Try adding more context");
+            }
+
+            if (hasContext) {
+                score += 25;
+                feedback.push("Contains context");
+            }
+
+            if (hasSpecificity) {
+                score += 25;
+                feedback.push("Specific request");
+            }
+
+            if (hasClearIntent) {
+                score += 25;
+                feedback.push("Clear intent");
+            }
+
+            return { score, feedback, wordCount };
+        };
+
+        // Skill milestones for progress tracking
+        const SKILL_MILESTONES = [
+            { id: 1, name: "First Prompt", icon: "fa-flag", achieved: false, requirement: "Write your first prompt" },
+            { id: 2, name: "Task Master", icon: "fa-tasks", achieved: false, requirement: "Complete 10 tasks" },
+            { id: 3, name: "Prompt Engineer", icon: "fa-cog", achieved: false, requirement: "Write 25 prompts" },
+            { id: 4, name: "Week Warrior", icon: "fa-calendar", achieved: false, requirement: "7-day streak" },
+            { id: 5, name: "AI Explorer", icon: "fa-compass", achieved: false, requirement: "Try all prompt types" },
+            { id: 6, name: "Knowledge Seeker", icon: "fa-book", achieved: false, requirement: "Complete 50 tasks" },
+            { id: 7, name: "Prompt Master", icon: "fa-crown", achieved: false, requirement: "Write 100 prompts" },
+            { id: 8, name: "Consistency King", icon: "fa-fire", achieved: false, requirement: "30-day streak" }
+        ];
+
+        // Main App Component
+        const AIQuestPlanner = () => {
+            const [activeTab, setActiveTab] = useState('dashboard');
+            const [tasks, setTasks] = useState(() => storage.get('tasks', []));
+            const [prompts, setPrompts] = useState(() => storage.get('prompts', []));
+            const [stats, setStats] = useState(() => storage.get('stats', {
+                totalTasks: 0,
+                totalPrompts: 0,
+                currentStreak: 0,
+                longestStreak: 0,
+                lastActiveDate: new Date().toDateString(),
+                points: 0,
+                milestones: SKILL_MILESTONES
+            }));
+            const [showNotification, setShowNotification] = useState(false);
+            const [notificationMessage, setNotificationMessage] = useState('');
+
+            // Save to localStorage whenever state changes
+            useEffect(() => {
+                storage.set('tasks', tasks);
+            }, [tasks]);
+
+            useEffect(() => {
+                storage.set('prompts', prompts);
+            }, [prompts]);
+
+            useEffect(() => {
+                storage.set('stats', stats);
+            }, [stats]);
+
+            // Check for streak and send reminders
+            useEffect(() => {
+                const checkStreak = () => {
+                    const today = new Date().toDateString();
+                    const lastActive = new Date(stats.lastActiveDate);
+                    const todayDate = new Date();
+                    const daysDiff = Math.floor((todayDate - lastActive) / (1000 * 60 * 60 * 24));
+
+                    if (daysDiff > 1) {
+                        // Streak broken
+                        setStats(prev => ({ ...prev, currentStreak: 0 }));
+                        showToast("Your streak was broken! Let's start fresh today! 💪");
+                    } else if (today !== stats.lastActiveDate && daysDiff === 1) {
+                        // New day, continue streak
+                        setStats(prev => ({
+                            ...prev,
+                            currentStreak: prev.currentStreak + 1,
+                            longestStreak: Math.max(prev.longestStreak, prev.currentStreak + 1),
+                            lastActiveDate: today
+                        }));
+                    }
+                };
+
+                const reminderInterval = setInterval(() => {
+                    const todaysTasks = tasks.filter(task => 
+                        new Date(task.createdAt).toDateString() === new Date().toDateString()
+                    );
+                    const incompleteTasks = todaysTasks.filter(task => !task.completed).length;
+                    
+                    if (incompleteTasks > 0 && new Date().getHours() >= 18) {
+                        showToast(`You have ${incompleteTasks} tasks remaining today! Keep pushing! 🚀`);
+                    }
+                }, 3600000); // Check every hour
+
+                checkStreak();
+                return () => clearInterval(reminderInterval);
+            }, []);
+
+            // Show toast notification
+            const showToast = (message) => {
+                setNotificationMessage(message);
+                setShowNotification(true);
+                setTimeout(() => setShowNotification(false), 3000);
+            };
+
+            // Update milestones
+            const updateMilestones = () => {
+                setStats(prev => {
+                    const updatedMilestones = [...prev.milestones];
+                    
+                    // Check each milestone
+                    updatedMilestones[0].achieved = prev.totalPrompts >= 1;
+                    updatedMilestones[1].achieved = prev.totalTasks >= 10;
+                    updatedMilestones[2].achieved = prev.totalPrompts >= 25;
+                    updatedMilestones[3].achieved = prev.currentStreak >= 7;
+                    updatedMilestones[5].achieved = prev.totalTasks >= 50;
+                    updatedMilestones[6].achieved = prev.totalPrompts >= 100;
+                    updatedMilestones[7].achieved = prev.currentStreak >= 30;
+
+                    return { ...prev, milestones: updatedMilestones };
+                });
+            };
+
+            useEffect(() => {
+                updateMilestones();
+            }, [stats.totalTasks, stats.totalPrompts, stats.currentStreak]);
+
+            return (
+                <div className="container mx-auto p-4 max-w-7xl">
+                    {/* Header */}
+                    <header className="mb-8 text-center slide-in">
+                        <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent">
+                            AIQuest Planner
+                        </h1>
+                        <p className="text-gray-400">Your journey to mastering AI and prompt engineering starts here</p>
+                        
+                        {/* Stats Bar */}
+                        <div className="mt-4 flex justify-center gap-6 text-sm">
+                            <div className="bg-gray-800 px-4 py-2 rounded-lg">
+                                <i className="fas fa-fire text-orange-500 mr-2"></i>
+                                {stats.currentStreak} day streak
+                            </div>
+                            <div className="bg-gray-800 px-4 py-2 rounded-lg">
+                                <i className="fas fa-star text-yellow-500 mr-2"></i>
+                                {stats.points} points
+                            </div>
+                            <div className="bg-gray-800 px-4 py-2 rounded-lg">
+                                <i className="fas fa-tasks text-green-500 mr-2"></i>
+                                {stats.totalTasks} tasks completed
+                            </div>
+                        </div>
+                    </header>
+
+                    {/* Navigation Tabs */}
+                    <nav className="mb-6 border-b border-gray-700">
+                        <div className="flex gap-4">
+                            <button
+                                onClick={() => setActiveTab('dashboard')}
+                                className={`px-4 py-2 font-medium transition-colors ${
+                                    activeTab === 'dashboard'
+                                        ? 'text-blue-400 border-b-2 border-blue-400'
+                                        : 'text-gray-400 hover:text-white'
+                                }`}
+                            >
+                                <i className="fas fa-home mr-2"></i>Dashboard
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('tasks')}
+                                className={`px-4 py-2 font-medium transition-colors ${
+                                    activeTab === 'tasks'
+                                        ? 'text-blue-400 border-b-2 border-blue-400'
+                                        : 'text-gray-400 hover:text-white'
+                                }`}
+                            >
+                                <i className="fas fa-list-check mr-2"></i>Tasks
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('playground')}
+                                className={`px-4 py-2 font-medium transition-colors ${
+                                    activeTab === 'playground'
+                                        ? 'text-blue-400 border-b-2 border-blue-400'
+                                        : 'text-gray-400 hover:text-white'
+                                }`}
+                            >
+                                <i className="fas fa-code mr-2"></i>Prompt Playground
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('progress')}
+                                className={`px-4 py-2 font-medium transition-colors ${
+                                    activeTab === 'progress'
+                                        ? 'text-blue-400 border-b-2 border-blue-400'
+                                        : 'text-gray-400 hover:text-white'
+                                }`}
+                            >
+                                <i className="fas fa-chart-line mr-2"></i>Progress
+                            </button>
+                        </div>
+                    </nav>
+
+                    {/* Main Content */}
+                    <main>
+                        {activeTab === 'dashboard' && (
+                            <Dashboard 
+                                tasks={tasks} 
+                                stats={stats} 
+                                prompts={prompts}
+                                setActiveTab={setActiveTab}
+                            />
+                        )}
+                        {activeTab === 'tasks' && (
+                            <TaskManager 
+                                tasks={tasks} 
+                                setTasks={setTasks}
+                                stats={stats}
+                                setStats={setStats}
+                                showToast={showToast}
+                            />
+                        )}
+                        {activeTab === 'playground' && (
+                            <PromptPlayground 
+                                prompts={prompts}
+                                setPrompts={setPrompts}
+                                stats={stats}
+                                setStats={setStats}
+                                showToast={showToast}
+                            />
+                        )}
+                        {activeTab === 'progress' && (
+                            <ProgressTracker 
+                                stats={stats}
+                                tasks={tasks}
+                                prompts={prompts}
+                            />
+                        )}
+                    </main>
+
+                    {/* Toast Notification */}
+                    {showNotification && (
+                        <div className="fixed bottom-4 right-4 bg-blue-600 text-white px-6 py-3 rounded-lg shadow-lg slide-in">
+                            {notificationMessage}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // Dashboard Component
+        const Dashboard = ({ tasks, stats, prompts, setActiveTab }) => {
+            const todaysTasks = tasks.filter(task => 
+                new Date(task.createdAt).toDateString() === new Date().toDateString()
+            );
+            const completedToday = todaysTasks.filter(task => task.completed).length;
+            const completionRate = todaysTasks.length > 0 
+                ? Math.round((completedToday / todaysTasks.length) * 100) 
+                : 0;
+
+            const recentPrompts = prompts.slice(-3).reverse();
+
+            return (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {/* Today's Overview */}
+                    <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                        <h2 className="text-xl font-semibold mb-4">
+                            <i className="fas fa-calendar-day mr-2 text-blue-400"></i>
+                            Today's Overview
+                        </h2>
+                        <div className="space-y-3">
+                            <div className="flex justify-between items-center">
+                                <span className="text-gray-400">Tasks</span>
+                                <span className="font-medium">{completedToday} / {todaysTasks.length}</span>
+                            </div>
+                            <div className="w-full bg-gray-700 rounded-full h-2">
+                                <div 
+                                    className="bg-gradient-to-r from-blue-400 to-purple-600 h-2 rounded-full transition-all duration-300"
+                                    style={{ width: `${completionRate}%` }}
+                                ></div>
+                            </div>
+                            <p className="text-sm text-gray-400">{completionRate}% Complete</p>
+                            <button 
+                                onClick={() => setActiveTab('tasks')}
+                                className="w-full mt-4 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg transition-colors"
+                            >
+                                View All Tasks
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Quick Stats */}
+                    <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                        <h2 className="text-xl font-semibold mb-4">
+                            <i className="fas fa-chart-simple mr-2 text-green-400"></i>
+                            Quick Stats
+                        </h2>
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                                <span className="text-gray-400">Total Prompts</span>
+                                <span className="text-2xl font-bold text-green-400">{stats.totalPrompts}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-gray-400">Points Earned</span>
+                                <span className="text-2xl font-bold text-yellow-400">{stats.points}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-gray-400">Longest Streak</span>
+                                <span className="text-2xl font-bold text-orange-400">{stats.longestStreak} days</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Recent Prompts */}
+                    <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                        <h2 className="text-xl font-semibold mb-4">
+                            <i className="fas fa-history mr-2 text-purple-400"></i>
+                            Recent Prompts
+                        </h2>
+                        {recentPrompts.length > 0 ? (
+                            <div className="space-y-3">
+                                {recentPrompts.map((prompt, index) => (
+                                    <div key={index} className="bg-gray-700 p-3 rounded-lg">
+                                        <p className="text-sm truncate">{prompt.prompt}</p>
+                                        <p className="text-xs text-gray-400 mt-1">
+                                            Score: {prompt.analysis.score}% • {prompt.analysis.wordCount} words
+                                        </p>
+                                    </div>
+                                ))}
+                                <button 
+                                    onClick={() => setActiveTab('playground')}
+                                    className="w-full mt-2 text-blue-400 hover:text-blue-300 text-sm"
+                                >
+                                    Go to Playground →
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="text-center text-gray-400 py-8">
+                                <i className="fas fa-inbox text-3xl mb-2"></i>
+                                <p className="text-sm">No prompts yet</p>
+                                <button 
+                                    onClick={() => setActiveTab('playground')}
+                                    className="mt-4 text-blue-400 hover:text-blue-300 text-sm"
+                                >
+                                    Write your first prompt →
+                                </button>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Next Milestone */}
+                    <div className="bg-gray-800 rounded-lg p-6 border border-gray-700 md:col-span-2 lg:col-span-3">
+                        <h2 className="text-xl font-semibold mb-4">
+                            <i className="fas fa-trophy mr-2 text-yellow-400"></i>
+                            Next Milestone
+                        </h2>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                {(() => {
+                                    const nextMilestone = stats.milestones.find(m => !m.achieved);
+                                    if (nextMilestone) {
+                                        return (
+                                            <>
+                                                <h3 className="text-lg font-medium">{nextMilestone.name}</h3>
+                                                <p className="text-gray-400 text-sm">{nextMilestone.requirement}</p>
+                                            </>
+                                        );
+                                    } else {
+                                        return (
+                                            <>
+                                                <h3 className="text-lg font-medium">All milestones achieved!</h3>
+                                                <p className="text-gray-400 text-sm">You're an AI Master! Keep going!</p>
+                                            </>
+                                        );
+                                    }
+                                })()}
+                            </div>
+                            <button 
+                                onClick={() => setActiveTab('progress')}
+                                className="bg-yellow-600 hover:bg-yellow-700 px-4 py-2 rounded-lg transition-colors"
+                            >
+                                View All Progress
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Task Manager Component
+        const TaskManager = ({ tasks, setTasks, stats, setStats, showToast }) => {
+            const [newTask, setNewTask] = useState('');
+            const [editingId, setEditingId] = useState(null);
+            const [editingText, setEditingText] = useState('');
+            const [showSuggestions, setShowSuggestions] = useState(false);
+
+            const todaysTasks = tasks.filter(task => 
+                new Date(task.createdAt).toDateString() === new Date().toDateString()
+            );
+
+            const addTask = () => {
+                if (newTask.trim()) {
+                    const task = {
+                        id: Date.now(),
+                        text: newTask,
+                        completed: false,
+                        createdAt: new Date().toISOString()
+                    };
+                    setTasks([...tasks, task]);
+                    setNewTask('');
+                    showToast('Task added! Let\'s crush it! 💪');
+                }
+            };
+
+            const toggleTask = (id) => {
+                const updatedTasks = tasks.map(task => {
+                    if (task.id === id) {
+                        const wasCompleted = task.completed;
+                        if (!wasCompleted) {
+                            setStats(prev => ({
+                                ...prev,
+                                totalTasks: prev.totalTasks + 1,
+                                points: prev.points + 10
+                            }));
+                            showToast('+10 points! Great job! 🎉');
+                        } else {
+                            setStats(prev => ({
+                                ...prev,
+                                totalTasks: Math.max(0, prev.totalTasks - 1),
+                                points: Math.max(0, prev.points - 10)
+                            }));
+                        }
+                        return { ...task, completed: !task.completed };
+                    }
+                    return task;
+                });
+                setTasks(updatedTasks);
+            };
+
+            const deleteTask = (id) => {
+                const taskToDelete = tasks.find(t => t.id === id);
+                if (taskToDelete.completed) {
+                    setStats(prev => ({
+                        ...prev,
+                        totalTasks: Math.max(0, prev.totalTasks - 1),
+                        points: Math.max(0, prev.points - 10)
+                    }));
+                }
+                setTasks(tasks.filter(task => task.id !== id));
+                showToast('Task deleted');
+            };
+
+            const updateTask = (id) => {
+                if (editingText.trim()) {
+                    setTasks(tasks.map(task => 
+                        task.id === id ? { ...task, text: editingText } : task
+                    ));
+                    setEditingId(null);
+                    setEditingText('');
+                }
+            };
+
+            const useSuggestion = (suggestion) => {
+                setNewTask(suggestion);
+                setShowSuggestions(false);
+            };
+
+            return (
+                <div className="space-y-6">
+                    {/* Add Task Section */}
+                    <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                        <h2 className="text-xl font-semibold mb-4">Add New Task</h2>
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                value={newTask}
+                                onChange={(e) => setNewTask(e.target.value)}
+                                onKeyPress={(e) => e.key === 'Enter' && addTask()}
+                                placeholder="What will you accomplish today?"
+                                className="flex-1 bg-gray-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                            <button
+                                onClick={addTask}
+                                className="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-lg transition-colors"
+                            >
+                                <i className="fas fa-plus mr-2"></i>Add
+                            </button>
+                            <button
+                                onClick={() => setShowSuggestions(!showSuggestions)}
+                                className="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg transition-colors"
+                                title="Get AI task suggestions"
+                            >
+                                <i className="fas fa-lightbulb"></i>
+                            </button>
+                        </div>
+
+                        {/* Task Suggestions */}
+                        {showSuggestions && (
+                            <div className="mt-4 bg-gray-700 rounded-lg p-4">
+                                <h3 className="text-sm font-medium mb-2 text-gray-300">AI Learning Suggestions:</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                    {AI_TASK_SUGGESTIONS.map((suggestion, index) => (
+                                        <button
+                                            key={index}
+                                            onClick={() => useSuggestion(suggestion)}
+                                            className="text-left text-sm bg-gray-600 hover:bg-gray-500 p-2 rounded transition-colors"
+                                        >
+                                            {suggestion}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Today's Tasks */}
+                    <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                        <h2 className="text-xl font-semibold mb-4">
+                            Today's Tasks ({todaysTasks.filter(t => t.completed).length}/{todaysTasks.length})
+                        </h2>
+                        
+                        {todaysTasks.length === 0 ? (
+                            <div className="text-center py-8 text-gray-400">
+                                <i className="fas fa-clipboard-list text-4xl mb-3"></i>
+                                <p>No tasks yet. Add one to get started!</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-2">
+                                {todaysTasks.map(task => (
+                                    <div
+                                        key={task.id}
+                                        className={`flex items-center gap-3 p-3 rounded-lg transition-all ${
+                                            task.completed ? 'bg-gray-700/50' : 'bg-gray-700'
+                                        }`}
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            checked={task.completed}
+                                            onChange={() => toggleTask(task.id)}
+                                            className="w-5 h-5 rounded text-blue-600 focus:ring-blue-500"
+                                        />
+                                        
+                                        {editingId === task.id ? (
+                                            <input
+                                                type="text"
+                                                value={editingText}
+                                                onChange={(e) => setEditingText(e.target.value)}
+                                                onKeyPress={(e) => e.key === 'Enter' && updateTask(task.id)}
+                                                onBlur={() => updateTask(task.id)}
+                                                className="flex-1 bg-gray-600 px-3 py-1 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                autoFocus
+                                            />
+                                        ) : (
+                                            <span
+                                                className={`flex-1 ${
+                                                    task.completed ? 'line-through text-gray-500' : ''
+                                                }`}
+                                            >
+                                                {task.text}
+                                            </span>
+                                        )}
+                                        
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={() => {
+                                                    setEditingId(task.id);
+                                                    setEditingText(task.text);
+                                                }}
+                                                className="text-gray-400 hover:text-yellow-400 transition-colors"
+                                                title="Edit task"
+                                            >
+                                                <i className="fas fa-edit"></i>
+                                            </button>
+                                            <button
+                                                onClick={() => deleteTask(task.id)}
+                                                className="text-gray-400 hover:text-red-400 transition-colors"
+                                                title="Delete task"
+                                            >
+                                                <i className="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* All Tasks History */}
+                    <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                        <h2 className="text-xl font-semibold mb-4">
+                            <i className="fas fa-history mr-2"></i>
+                            Task History
+                        </h2>
+                        <div className="text-sm text-gray-400">
+                            <p>Total tasks created: {tasks.length}</p>
+                            <p>Total completed: {tasks.filter(t => t.completed).length}</p>
+                            <p>Completion rate: {tasks.length > 0 ? Math.round((tasks.filter(t => t.completed).length / tasks.length) * 100) : 0}%</p>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Prompt Playground Component
+        const PromptPlayground = ({ prompts, setPrompts, stats, setStats, showToast }) => {
+            const [currentPrompt, setCurrentPrompt] = useState('');
+            const [response, setResponse] = useState('');
+            const [analysis, setAnalysis] = useState(null);
+            const [savedPrompts, setSavedPrompts] = useState(prompts);
+            const [selectedPromptId, setSelectedPromptId] = useState(null);
+
+            const sendPrompt = () => {
+                if (currentPrompt.trim()) {
+                    const promptAnalysis = analyzePrompt(currentPrompt);
+                    const aiResponse = generateAIResponse(currentPrompt);
+                    
+                    setResponse(aiResponse);
+                    setAnalysis(promptAnalysis);
+
+                    const newPrompt = {
+                        id: Date.now(),
+                        prompt: currentPrompt,
+                        response: aiResponse,
+                        analysis: promptAnalysis,
+                        timestamp: new Date().toISOString()
+                    };
+
+                    setPrompts([...prompts, newPrompt]);
+                    setSavedPrompts([...prompts, newPrompt]);
+                    
+                    setStats(prev => ({
+                        ...prev,
+                        totalPrompts: prev.totalPrompts + 1,
+                        points: prev.points + Math.floor(promptAnalysis.score / 10)
+                    }));
+
+                    showToast(`+${Math.floor(promptAnalysis.score / 10)} points! Prompt quality: ${promptAnalysis.score}%`);
+                }
+            };
+
+            const loadPrompt = (prompt) => {
+                setCurrentPrompt(prompt.prompt);
+                setResponse(prompt.response);
+                setAnalysis(prompt.analysis);
+                setSelectedPromptId(prompt.id);
+            };
+
+            const deletePrompt = (id) => {
+                const updatedPrompts = prompts.filter(p => p.id !== id);
+                setPrompts(updatedPrompts);
+                setSavedPrompts(updatedPrompts);
+                if (selectedPromptId === id) {
+                    setCurrentPrompt('');
+                    setResponse('');
+                    setAnalysis(null);
+                    setSelectedPromptId(null);
+                }
+                showToast('Prompt deleted');
+            };
+
+            return (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Main Playground */}
+                    <div className="lg:col-span-2 space-y-6">
+                        {/* Prompt Input */}
+                        <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                            <h2 className="text-xl font-semibold mb-4">
+                                <i className="fas fa-keyboard mr-2 text-blue-400"></i>
+                                Write Your Prompt
+                            </h2>
+                            <textarea
+                                value={currentPrompt}
+                                onChange={(e) => setCurrentPrompt(e.target.value)}
+                                placeholder="Enter your prompt here... Be specific and provide context for better results."
+                                className="w-full h-32 bg-gray-700 text-white px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                            />
+                            <div className="mt-4 flex justify-between items-center">
+                                <div className="text-sm text-gray-400">
+                                    {currentPrompt.length} characters • {currentPrompt.split(/\s+/).filter(w => w).length} words
+                                </div>
+                                <button
+                                    onClick={sendPrompt}
+                                    disabled={!currentPrompt.trim()}
+                                    className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed px-6 py-2 rounded-lg transition-colors"
+                                >
+                                    <i className="fas fa-paper-plane mr-2"></i>Send Prompt
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Prompt Analysis */}
+                        {analysis && (
+                            <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                                <h3 className="text-lg font-semibold mb-4">
+                                    <i className="fas fa-chart-line mr-2 text-green-400"></i>
+                                    Prompt Analysis
+                                </h3>
+                                <div className="space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-gray-400">Quality Score</span>
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-32 bg-gray-700 rounded-full h-2">
+                                                <div 
+                                                    className={`h-2 rounded-full transition-all duration-300 ${
+                                                        analysis.score >= 75 ? 'bg-green-500' :
+                                                        analysis.score >= 50 ? 'bg-yellow-500' : 'bg-red-500'
+                                                    }`}
+                                                    style={{ width: `${analysis.score}%` }}
+                                                ></div>
+                                            </div>
+                                            <span className="font-medium">{analysis.score}%</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2 mt-2">
+                                        {analysis.feedback.map((item, index) => (
+                                            <span key={index} className="px-3 py-1 bg-gray-700 rounded-full text-sm">
+                                                {item}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* AI Response */}
+                        {response && (
+                            <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                                <h3 className="text-lg font-semibold mb-4">
+                                    <i className="fas fa-robot mr-2 text-purple-400"></i>
+                                    AI Response
+                                </h3>
+                                <div className="bg-gray-700 p-4 rounded-lg">
+                                    <p className="whitespace-pre-wrap">{response}</p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Saved Prompts Sidebar */}
+                    <div className="lg:col-span-1">
+                        <div className="bg-gray-800 rounded-lg p-6 border border-gray-700 sticky top-4">
+                            <h3 className="text-lg font-semibold mb-4">
+                                <i className="fas fa-bookmark mr-2 text-yellow-400"></i>
+                                Saved Prompts ({savedPrompts.length})
+                            </h3>
+                            
+                            {savedPrompts.length === 0 ? (
+                                <p className="text-gray-400 text-sm text-center py-4">
+                                    No saved prompts yet. Start writing!
+                                </p>
+                            ) : (
+                                <div className="space-y-2 max-h-96 overflow-y-auto">
+                                    {savedPrompts.slice().reverse().map(prompt => (
+                                        <div
+                                            key={prompt.id}
+                                            className={`p-3 rounded-lg cursor-pointer transition-all ${
+                                                selectedPromptId === prompt.id
+                                                    ? 'bg-blue-900/30 border border-blue-500'
+                                                    : 'bg-gray-700 hover:bg-gray-600'
+                                            }`}
+                                        >
+                                            <div onClick={() => loadPrompt(prompt)}>
+                                                <p className="text-sm truncate">{prompt.prompt}</p>
+                                                <p className="text-xs text-gray-400 mt-1">
+                                                    Score: {prompt.analysis.score}% • {new Date(prompt.timestamp).toLocaleDateString()}
+                                                </p>
+                                            </div>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    deletePrompt(prompt.id);
+                                                }}
+                                                className="text-xs text-red-400 hover:text-red-300 mt-2"
+                                            >
+                                                <i className="fas fa-trash mr-1"></i>Delete
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Progress Tracker Component
+        const ProgressTracker = ({ stats, tasks, prompts }) => {
+            const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            const today = new Date();
+            const last30Days = [];
+            
+            // Generate last 30 days activity
+            for (let i = 29; i >= 0; i--) {
+                const date = new Date();
+                date.setDate(today.getDate() - i);
+                const dateStr = date.toDateString();
+                const dayTasks = tasks.filter(t => 
+                    new Date(t.createdAt).toDateString() === dateStr && t.completed
+                );
+                last30Days.push({
+                    date: dateStr,
+                    day: weekDays[date.getDay()],
+                    count: dayTasks.length,
+                    isToday: i === 0
+                });
+            }
+
+            return (
+                <div className="space-y-6">
+                    {/* Milestones */}
+                    <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                        <h2 className="text-xl font-semibold mb-6">
+                            <i className="fas fa-trophy mr-2 text-yellow-400"></i>
+                            Achievements & Milestones
+                        </h2>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            {stats.milestones.map(milestone => (
+                                <div
+                                    key={milestone.id}
+                                    className={`skill-node p-4 rounded-lg text-center ${
+                                        milestone.achieved
+                                            ? 'bg-gradient-to-br from-yellow-600 to-yellow-700 border-yellow-500'
+                                            : 'bg-gray-700 border-gray-600'
+                                    } border`}
+                                >
+                                    <i className={`fas ${milestone.icon} text-2xl mb-2`}></i>
+                                    <h4 className="font-medium text-sm">{milestone.name}</h4>
+                                    <p className="text-xs mt-1 opacity-75">{milestone.requirement}</p>
+                                    {milestone.achieved && (
+                                        <i className="fas fa-check-circle text-green-400 mt-2"></i>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Activity Heatmap */}
+                    <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                        <h2 className="text-xl font-semibold mb-4">
+                            <i className="fas fa-fire mr-2 text-orange-400"></i>
+                            30-Day Activity
+                        </h2>
+                        <div className="grid grid-cols-10 gap-1">
+                            {last30Days.map((day, index) => (
+                                <div
+                                    key={index}
+                                    className={`aspect-square rounded flex items-center justify-center text-xs ${
+                                        day.count === 0 ? 'bg-gray-700' :
+                                        day.count <= 2 ? 'bg-green-900' :
+                                        day.count <= 5 ? 'bg-green-700' :
+                                        'bg-green-500'
+                                    } ${day.isToday ? 'ring-2 ring-blue-400' : ''}`}
+                                    title={`${day.date}: ${day.count} tasks completed`}
+                                >
+                                    {day.isToday ? '📍' : ''}
+                                </div>
+                            ))}
+                        </div>
+                        <div className="mt-4 flex items-center gap-4 text-sm text-gray-400">
+                            <span>Less</span>
+                            <div className="flex gap-1">
+                                <div className="w-4 h-4 bg-gray-700 rounded"></div>
+                                <div className="w-4 h-4 bg-green-900 rounded"></div>
+                                <div className="w-4 h-4 bg-green-700 rounded"></div>
+                                <div className="w-4 h-4 bg-green-500 rounded"></div>
+                            </div>
+                            <span>More</span>
+                        </div>
+                    </div>
+
+                    {/* Stats Summary */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                            <div className="flex items-center justify-between mb-2">
+                                <h3 className="text-lg font-semibold">Total Progress</h3>
+                                <i className="fas fa-chart-pie text-blue-400 text-2xl"></i>
+                            </div>
+                            <div className="space-y-2 text-sm">
+                                <div className="flex justify-between">
+                                    <span className="text-gray-400">Tasks Completed</span>
+                                    <span className="font-medium">{stats.totalTasks}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-gray-400">Prompts Written</span>
+                                    <span className="font-medium">{stats.totalPrompts}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-gray-400">Points Earned</span>
+                                    <span className="font-medium">{stats.points}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                            <div className="flex items-center justify-between mb-2">
+                                <h3 className="text-lg font-semibold">Streaks</h3>
+                                <i className="fas fa-fire text-orange-400 text-2xl"></i>
+                            </div>
+                            <div className="space-y-2 text-sm">
+                                <div className="flex justify-between">
+                                    <span className="text-gray-400">Current Streak</span>
+                                    <span className="font-medium text-orange-400">{stats.currentStreak} days</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-gray-400">Longest Streak</span>
+                                    <span className="font-medium">{stats.longestStreak} days</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                            <div className="flex items-center justify-between mb-2">
+                                <h3 className="text-lg font-semibold">Productivity</h3>
+                                <i className="fas fa-rocket text-purple-400 text-2xl"></i>
+                            </div>
+                            <div className="space-y-2 text-sm">
+                                <div className="flex justify-between">
+                                    <span className="text-gray-400">Avg Tasks/Day</span>
+                                    <span className="font-medium">
+                                        {stats.totalTasks > 0 ? (stats.totalTasks / Math.max(1, stats.currentStreak)).toFixed(1) : 0}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-gray-400">Completion Rate</span>
+                                    <span className="font-medium">
+                                        {tasks.length > 0 ? Math.round((tasks.filter(t => t.completed).length / tasks.length) * 100) : 0}%
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Learning Path */}
+                    <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                        <h2 className="text-xl font-semibold mb-4">
+                            <i className="fas fa-route mr-2 text-green-400"></i>
+                            Your AI Learning Journey
+                        </h2>
+                        <div className="relative">
+                            <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-gray-600"></div>
+                            <div className="space-y-6">
+                                {[
+                                    { milestone: "Started Journey", icon: "fa-play", achieved: true, date: "Day 1" },
+                                    { milestone: "First 10 Tasks", icon: "fa-check", achieved: stats.totalTasks >= 10, date: stats.totalTasks >= 10 ? "Achieved!" : "In Progress" },
+                                    { milestone: "Prompt Expert", icon: "fa-brain", achieved: stats.totalPrompts >= 50, date: stats.totalPrompts >= 50 ? "Achieved!" : `${stats.totalPrompts}/50 prompts` },
+                                    { milestone: "AI Master", icon: "fa-graduation-cap", achieved: stats.points >= 1000, date: stats.points >= 1000 ? "Achieved!" : `${stats.points}/1000 points` }
+                                ].map((item, index) => (
+                                    <div key={index} className="relative flex items-center gap-4">
+                                        <div className={`w-16 h-16 rounded-full flex items-center justify-center ${
+                                            item.achieved ? 'bg-green-600' : 'bg-gray-700'
+                                        } z-10`}>
+                                            <i className={`fas ${item.icon} text-xl`}></i>
+                                        </div>
+                                        <div>
+                                            <h4 className="font-medium">{item.milestone}</h4>
+                                            <p className="text-sm text-gray-400">{item.date}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Render the app
+        ReactDOM.render(<AIQuestPlanner />, document.getElementById('root'));
+    </script>
+</body>
+</html>
